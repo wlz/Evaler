@@ -20,7 +20,7 @@ namespace Evaler
             switch (type)
             {
                 case "num":
-                    return exp;
+                case "string":
                 case "bool":
                     return exp;
                 case "exp":
@@ -32,44 +32,69 @@ namespace Evaler
 
         static string Apply(string op, string op1, string op2)
         {
-            int val1 = 0, val2 = 0;
-            if (op == "+" || op == "-" || op == ">" || op == "<")
-            {
-                val1 = int.Parse(Value(op1));
-                val2 = int.Parse(Value(op2));
-            }
+            //int val1 = 0, val2 = 0;
+
+            //if (op == "+" || op == "-" || op == ">" || op == "<")
+            //{
+            //    val1 = int.Parse(Value(op1));
+            //    val2 = int.Parse(Value(op2));
+            //}
+            string val1 = Value(op1), val2 = Value(op2);
 
             switch (op)
             {
                 case "+":
-                    return (val1 + val2).ToString();
                 case "-":
-                    return (val1 - val2).ToString();
-                case ">":
-                    return (val1 > val2) ? "true" : "false";
-                case "<":
-                    return (val1 < val2) ? "true" : "false";
-                case "and":
-                    return (Value(op1) == "true" && Value(op2) == "true") ? "true" : "false";
-                case "or":
-                    return (Value(op1) == "true" || Value(op2) == "true") ? "true" : "false";
+                    return ArithOp(op, val1, val2);
+                //case ">":
+                //    return (val1 > val2) ? "t" : "f";
+                //case "<":
+                //    return (val1 < val2) ? "t" : "f";
+                //case "&":
+                //    return (Value(op1) == "t" && Value(op2) == "t") ? "t" : "f";
+                //case "|":
+                //    return (Value(op1) == "t" || Value(op2) == "t") ? "t" : "f";
                 default:
                     return string.Empty;
             }
         }
 
+        static string ArithOp(string op, string val1, string val2)
+        {
+            string result = string.Empty;
+
+            if (Type(val1) == "num" && Type(val2) == "num")
+            {
+                if (op == "+")
+                    return (int.Parse(val1) + int.Parse(val2)).ToString();
+                else if (op == "-")
+                    return (int.Parse(val1) - int.Parse(val2)).ToString();
+            }
+            else
+            {
+                if (op == "+")
+                    return val1 + val2;
+            }
+
+            return string.Empty;
+        }
+
         static string Type(string exp)
         {
+            int num = 0;
+
             if (exp.StartsWith("("))
                 return "exp";
             else if (exp == "+" || exp == "-")
                 return "arop";
-            else if (exp == "+" || exp == "-")
+            else if (exp == ">" || exp == "<" || exp == "and" || exp == "or")
                 return "lgop";
             else if (exp == "true" || exp == "false")
                 return "bool";
-            else
+            else if (int.TryParse(exp, out  num))
                 return "num";
+            else
+                return "string";
         }
 
         static string car(string exp)
@@ -168,13 +193,28 @@ namespace Evaler
             public static void TestLogic()
             {
                 //string exp = "(and (> 2 1) (< 3 4))";
-                string exp = "(and (> (+ 1 2) 1) (< 3 4))";
+                string exp = "(& (> (+ 1 2) 1) (< 3 4))";
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
+            public static void TestArith()
+            {
+                //string exp = "aaa";
+                string exp = "(- aaa bbb)";
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
+            public static void TestString()
+            {
+                //string exp = "aaa";
+                string exp = "(+ aaa bbb)";
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
             public static void Run()
             {
-                TestBool();
+                //TestLogic();
+                TestArith();
             }
         }
     }
