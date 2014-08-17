@@ -13,31 +13,48 @@ namespace Evaler
             Console.Read();
         }
 
-        static int Value(string exp)
+        static string Value(string exp)
         {
             string type = Type(exp);
 
             switch (type)
             {
-                case "int":
-                    return int.Parse(exp);
+                case "num":
+                    return exp;
+                case "bool":
+                    return exp;
                 case "exp":
                     return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
                 default:
-                    return 0;
+                    return string.Empty;
             }
         }
 
-        static int Apply(string op, string op1, string op2)
+        static string Apply(string op, string op1, string op2)
         {
+            int val1 = 0, val2 = 0;
+            if (op == "+" || op == "-" || op == ">" || op == "<")
+            {
+                val1 = int.Parse(Value(op1));
+                val2 = int.Parse(Value(op2));
+            }
+
             switch (op)
             {
                 case "+":
-                    return Value(op1) + Value(op2);
+                    return (val1 + val2).ToString();
                 case "-":
-                    return Value(op1) - Value(op2);
+                    return (val1 - val2).ToString();
+                case ">":
+                    return (val1 > val2) ? "true" : "false";
+                case "<":
+                    return (val1 < val2) ? "true" : "false";
+                case "and":
+                    return (Value(op1) == "true" && Value(op2) == "true") ? "true" : "false";
+                case "or":
+                    return (Value(op1) == "true" || Value(op2) == "true") ? "true" : "false";
                 default:
-                    return 0;
+                    return string.Empty;
             }
         }
 
@@ -45,12 +62,14 @@ namespace Evaler
         {
             if (exp.StartsWith("("))
                 return "exp";
-            //else if (exp == "t" || exp == "f")
-            //    return "bool";
             else if (exp == "+" || exp == "-")
-                return "op";
+                return "arop";
+            else if (exp == "+" || exp == "-")
+                return "lgop";
+            else if (exp == "true" || exp == "false")
+                return "bool";
             else
-                return "int";
+                return "num";
         }
 
         static string car(string exp)
@@ -133,13 +152,29 @@ namespace Evaler
                 string exp =
                     //"(+ 1 2)";
                     //"(+ (+ 1 2) 2)";
-                    "(+ (+ 1 2) (+ 3 2))";
+                    //"(+ (+ 1 2) (+ 3 2))";
+                    "(+ (+ 1 2) (- 3 2))";
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
+            public static void TestBool()
+            {
+                //string exp = "true";
+                //string exp = "false";
+                string exp = "(< 3 4)";
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
+            public static void TestLogic()
+            {
+                //string exp = "(and (> 2 1) (< 3 4))";
+                string exp = "(and (> (+ 1 2) 1) (< 3 4))";
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
             public static void Run()
             {
-                TestValue();
+                TestBool();
             }
         }
     }
