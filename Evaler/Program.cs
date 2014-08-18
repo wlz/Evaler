@@ -7,6 +7,8 @@ namespace Evaler
 {
     class Program
     {
+        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "&", "|", "!", "car", "cdr" };
+
         static void Main(string[] args)
         {
             Test.Run();
@@ -15,24 +17,48 @@ namespace Evaler
 
         static string Value(string exp)
         {
-            string type = Type(exp);
-
-            switch (type)
+            switch (Type(exp))
             {
+                case "bool":
                 case "num":
                 case "string":
-                case "bool":
+                case "list":
                     return exp;
                 case "exp":
-                    return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
+                    return Apply(exp);
                 default:
                     return string.Empty;
             }
         }
 
-        static string Apply(string op, string op1, string op2)
+        static string Apply(string exp)
         {
-            string val1 = Value(op1), val2 = Value(op2);
+            string op = car(exp);
+            if (op == "car" || op == "cdr" || op == "!")
+                return Apply(op, cdr(exp));
+            else
+                return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
+        }
+
+        static string Apply(string op, string opd)
+        {
+            string val = Value(car(opd));
+            switch (op)
+            {
+                case "!":
+                    return val == "f" ? "t" : "f";
+                case "car":
+                    return car(val);
+                case "cdr":
+                    return cdr(val);
+                default:
+                    return string.Empty;
+            }
+        }
+
+        static string Apply(string op, string opd1, string opd2)
+        {
+            string val1 = Value(opd1), val2 = Value(opd2);
 
             switch (op)
             {
@@ -101,8 +127,10 @@ namespace Evaler
         {
             int num = 0;
 
-            if (exp.StartsWith("("))
+            if (exp.StartsWith("(") && Operators.Contains(car(exp)))
                 return "exp";
+            else if (exp.StartsWith("(") && !Operators.Contains(car(exp)))
+                return "list";
             else if (exp == "+" || exp == "-")
                 return "arop";
             else if (exp == ">" || exp == "<" || exp == "&" || exp == "|")
@@ -212,8 +240,9 @@ namespace Evaler
             public static void TestLogic()
             {
                 //string exp = "(and (> 2 1) (< 3 4))";
-                string exp = "(& (> (+ 1 2) 1) (< 3 4))";
-                //string exp = "(& t t)";
+                //string exp = "(& (> (+ 1 2) 1) (< 3 4))";
+                //string exp = "(! (> 3 2))";
+                string exp = "(! (> 3 4))";
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
@@ -231,11 +260,30 @@ namespace Evaler
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
+            public static void TestListOp()
+            {
+                //string exp = "(car a b c)";
+                string exp = "(cdr (cdr (a b c)))";
+                Console.WriteLine(Program.Value(exp) + "|");
+
+            }
+
+            public static void TestList()
+            {
+                string exp = "(a b c)";
+                //string exp = "(car (cdr (a b c)))";
+                Console.WriteLine(Program.Value(exp) + "|");
+
+            }
+
+
             public static void Run()
             {
-                TestLogic();
+                TestListOp();
+                //TestLogic();
                 //TestArith();
                 //TestBool();
+                //TestList();
             }
         }
     }
