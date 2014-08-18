@@ -7,7 +7,8 @@ namespace Evaler
 {
     class Program
     {
-        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "&", "|", "!", "car", "cdr" };
+        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "&", "|", "!", "car", "cdr", "cons" };
+        static List<string> Constructures = new List<string>() { "if", "cond" };
 
         static void Main(string[] args)
         {
@@ -21,9 +22,10 @@ namespace Evaler
             {
                 case "bool":
                 case "num":
-                case "string":
+                case "item":
                 case "list":
                     return exp;
+                case "const":
                 case "exp":
                     return Apply(exp);
                 default:
@@ -34,10 +36,24 @@ namespace Evaler
         static string Apply(string exp)
         {
             string op = car(exp);
+
             if (op == "car" || op == "cdr" || op == "!")
                 return Apply(op, cdr(exp));
-            else
+            else if (Operators.Contains(op))
                 return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
+            else if (op == "if")
+                return EvalIf(exp);
+            else
+                return string.Empty;
+        }
+
+        private static string EvalIf(string exp)
+        {
+            string cond = car(cdr(exp));
+
+            return Value(cond) == "t" ?
+                Value(car(cdr(cdr(exp)))) :
+                Value(car(cdr(cdr(cdr(exp)))));
         }
 
         static string Apply(string op, string opd)
@@ -71,9 +87,17 @@ namespace Evaler
                 case "&":
                 case "|":
                     return LogicOp(op, val1, val2);
+                case "cons":
+                    return cons(val1, val2);
                 default:
                     return string.Empty;
             }
+        }
+
+
+        static string cons(string val1, string val2)
+        {
+            return "(" + val1 + " " + val2 + ")";
         }
 
         static string ArithOp(string op, string val1, string val2)
@@ -129,18 +153,18 @@ namespace Evaler
 
             if (exp.StartsWith("(") && Operators.Contains(car(exp)))
                 return "exp";
-            else if (exp.StartsWith("(") && !Operators.Contains(car(exp)))
+            else if (exp.StartsWith("(") && Constructures.Contains(car(exp)))
+                return "const";
+            else if (exp.StartsWith("("))
                 return "list";
-            else if (exp == "+" || exp == "-")
-                return "arop";
-            else if (exp == ">" || exp == "<" || exp == "&" || exp == "|")
-                return "lgop";
+            else if (Operators.Contains(exp))
+                return "op";
             else if (exp == "t" || exp == "f")
                 return "bool";
-            else if (int.TryParse(exp, out  num))
+            else if (int.TryParse(exp, out num))
                 return "num";
             else
-                return "string";
+                return "item";
         }
 
         static string car(string exp)
@@ -224,8 +248,8 @@ namespace Evaler
                     //"(+ 1 2)";
                     //"(+ (+ 1 2) 2)";
                     //"(+ (+ 1 2) (+ 3 2))";
-                    "(+ (+ 1 2) (- 3 2))";
-                Console.WriteLine(Program.Value(exp) + "|");
+                "(+ (+ 1 2) (- 3 2))";
+                Console.WriteLine(Value(exp) + "|");
             }
 
             public static void TestBool()
@@ -265,7 +289,6 @@ namespace Evaler
                 //string exp = "(car a b c)";
                 string exp = "(cdr (cdr (a b c)))";
                 Console.WriteLine(Program.Value(exp) + "|");
-
             }
 
             public static void TestList()
@@ -273,17 +296,36 @@ namespace Evaler
                 string exp = "(a b c)";
                 //string exp = "(car (cdr (a b c)))";
                 Console.WriteLine(Program.Value(exp) + "|");
+            }
 
+            public static void TestCons()
+            {
+                //string exp = "(cons a (b))";
+                //string exp = "(cons a (car (a b)))";
+                string exp = "(cons 1 (b))";
+
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
+            public static void TestIf()
+            {
+                //string exp = "(if (> 5 2) (+ 2 3) (- 3 1))";
+                string exp = "(if (< 1 2) (if (< 3 4) 3 4) b)";
+
+                Console.WriteLine(Program.Value(exp) + "|");
             }
 
 
             public static void Run()
             {
-                TestListOp();
+                //TestValue();
+                //TestListOp();
                 //TestLogic();
                 //TestArith();
                 //TestBool();
                 //TestList();
+                //TestCons();
+                TestIf();
             }
         }
     }
