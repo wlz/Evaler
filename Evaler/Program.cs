@@ -13,7 +13,20 @@ namespace Evaler
         static void Main(string[] args)
         {
             Test.Run();
-            Console.Read();
+            //Eval();
+        }
+
+        static void Eval()
+        {
+            while (true)
+            {
+                Console.Write(">");
+                string exp = Console.ReadLine();
+                Console.WriteLine(Value(exp));
+
+                if (exp == "(exit)")
+                    break;
+            }
         }
 
         static string Value(string exp)
@@ -89,7 +102,7 @@ namespace Evaler
                 if (car(exp) == "else")
                     return Value(car(cdr(exp)));
                 else
-                    return Value(car(exp)) == "t" ? Value(car(cdr(exp))) : EvalCondsRecursive(cdr(conds));
+                    return Value(car(exp)) == "#t" ? Value(car(cdr(exp))) : EvalCondsRecursive(cdr(conds));
             }
         }
 
@@ -97,9 +110,9 @@ namespace Evaler
         {
             string cond = car(cdr(exp));
 
-            return Value(cond) == "t" ?
-                Value(car(cdr(cdr(exp)))) :
-                Value(car(cdr(cdr(cdr(exp)))));
+            return Value(cond) == "#t" ?
+                   Value(car(cdr(cdr(exp)))) :
+                   Value(car(cdr(cdr(cdr(exp)))));
         }
 
         static string Apply(string op, string opd)
@@ -108,7 +121,7 @@ namespace Evaler
             switch (op)
             {
                 case "!":
-                    return val == "f" ? "t" : "f";
+                    return val == "#f" ? "#t" : "#f";
                 case "car":
                     return car(val);
                 case "cdr":
@@ -172,9 +185,9 @@ namespace Evaler
             {
                 int v1 = int.Parse(val1), v2 = int.Parse(val2);
                 if (op == ">")
-                    return (v1 > v2) ? "t" : "f";
+                    return (v1 > v2) ? "#t" : "#f";
                 else if (op == "<")
-                    return v1 < v2 ? "t" : "f";
+                    return v1 < v2 ? "#t" : "#f";
             }
 
             return "f";
@@ -185,12 +198,12 @@ namespace Evaler
             if (Type(val1) == "bool" && Type(val2) == "bool")
             {
                 if (op == "&")
-                    return (val1 == "t" && val2 == "t") ? "t" : "f";
+                    return (val1 == "#t" && val2 == "#t") ? "#t" : "#f";
                 else if (op == "|")
-                    return (val1 == "t" || val2 == "t") ? "t" : "f";
+                    return (val1 == "#t" || val2 == "#t") ? "#t" : "#f";
             }
 
-            return "f";
+            return "#f";
         }
 
         static string Type(string exp)
@@ -207,7 +220,7 @@ namespace Evaler
                 return "list";
             else if (Operators.Contains(exp))
                 return "op";
-            else if (exp == "t" || exp == "f")
+            else if (exp == "#t" || exp == "#f")
                 return "bool";
             else if (int.TryParse(exp, out num))
                 return "num";
@@ -378,7 +391,9 @@ namespace Evaler
                 //string exp = "(((lambda a b) (+ a b)) 1 2)";
                 //string exp = "((lambda (a) (+ a a)) 3)";
                 //string exp = "((lambda (a b) (+ a b)) 3 4)";
-                string exp = "((lambda (a b c) (- (+ a b) c)) 3 4 5)";
+                //string exp = "((lambda (a b c) (- (+ a b) c)) 3 4 5)";
+                string exp = "((lambda (a) a) 3)";
+
 
                 Console.WriteLine(Program.Value(exp) + "|");
             }
@@ -390,11 +405,13 @@ namespace Evaler
                 //TestListOp();
                 //TestLogic();
                 //TestArith();
-                //TestBool();
+                TestBool();
                 //TestList();
                 //TestCons();
                 //TestIf();
-                TestLambda();
+                //TestLambda();
+
+                Console.Read();
             }
         }
     }
