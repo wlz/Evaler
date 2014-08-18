@@ -32,13 +32,6 @@ namespace Evaler
 
         static string Apply(string op, string op1, string op2)
         {
-            //int val1 = 0, val2 = 0;
-
-            //if (op == "+" || op == "-" || op == ">" || op == "<")
-            //{
-            //    val1 = int.Parse(Value(op1));
-            //    val2 = int.Parse(Value(op2));
-            //}
             string val1 = Value(op1), val2 = Value(op2);
 
             switch (op)
@@ -46,14 +39,12 @@ namespace Evaler
                 case "+":
                 case "-":
                     return ArithOp(op, val1, val2);
-                //case ">":
-                //    return (val1 > val2) ? "t" : "f";
-                //case "<":
-                //    return (val1 < val2) ? "t" : "f";
-                //case "&":
-                //    return (Value(op1) == "t" && Value(op2) == "t") ? "t" : "f";
-                //case "|":
-                //    return (Value(op1) == "t" || Value(op2) == "t") ? "t" : "f";
+                case ">":
+                case "<":
+                    return CompOp(op, val1, val2);
+                case "&":
+                case "|":
+                    return LogicOp(op, val1, val2);
                 default:
                     return string.Empty;
             }
@@ -79,6 +70,33 @@ namespace Evaler
             return string.Empty;
         }
 
+        static string CompOp(string op, string val1, string val2)
+        {
+            if (Type(val1) == "num" && Type(val2) == "num")
+            {
+                int v1 = int.Parse(val1), v2 = int.Parse(val2);
+                if (op == ">")
+                    return (v1 > v2) ? "t" : "f";
+                else if (op == "<")
+                    return v1 < v2 ? "t" : "f";
+            }
+
+            return "f";
+        }
+
+        static string LogicOp(string op, string val1, string val2)
+        {
+            if (Type(val1) == "bool" && Type(val2) == "bool")
+            {
+                if (op == "&")
+                    return (val1 == "t" && val2 == "t") ? "t" : "f";
+                else if (op == "|")
+                    return (val1 == "t" || val2 == "t") ? "t" : "f";
+            }
+
+            return "f";
+        }
+
         static string Type(string exp)
         {
             int num = 0;
@@ -87,9 +105,9 @@ namespace Evaler
                 return "exp";
             else if (exp == "+" || exp == "-")
                 return "arop";
-            else if (exp == ">" || exp == "<" || exp == "and" || exp == "or")
+            else if (exp == ">" || exp == "<" || exp == "&" || exp == "|")
                 return "lgop";
-            else if (exp == "true" || exp == "false")
+            else if (exp == "t" || exp == "f")
                 return "bool";
             else if (int.TryParse(exp, out  num))
                 return "num";
@@ -186,7 +204,8 @@ namespace Evaler
             {
                 //string exp = "true";
                 //string exp = "false";
-                string exp = "(< 3 4)";
+                //string exp = "(< 3 4)";
+                string exp = "(> 3 4)";
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
@@ -194,6 +213,7 @@ namespace Evaler
             {
                 //string exp = "(and (> 2 1) (< 3 4))";
                 string exp = "(& (> (+ 1 2) 1) (< 3 4))";
+                //string exp = "(& t t)";
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
@@ -213,8 +233,9 @@ namespace Evaler
 
             public static void Run()
             {
-                //TestLogic();
-                TestArith();
+                TestLogic();
+                //TestArith();
+                //TestBool();
             }
         }
     }
