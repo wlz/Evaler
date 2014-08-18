@@ -43,8 +43,30 @@ namespace Evaler
                 return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
             else if (op == "if")
                 return EvalIf(exp);
+            else if (op == "cond")
+                return EvalCond(exp);
             else
                 return string.Empty;
+        }
+
+        private static string EvalCond(string exp)
+        {
+            return EvalCondsRecursive(cdr(exp));
+        }
+
+        private static string EvalCondsRecursive(string conds)
+        {
+            if (conds == "()" || string.IsNullOrEmpty(conds))
+                return string.Empty;
+            else
+            {
+                string exp = car(conds);
+
+                if (car(exp) == "else")
+                    return Value(car(cdr(exp)));
+                else
+                    return Value(car(exp)) == "t" ? Value(car(cdr(exp))) : EvalCondsRecursive(cdr(conds));
+            }
         }
 
         private static string EvalIf(string exp)
@@ -315,6 +337,15 @@ namespace Evaler
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
+            public static void TestCond()
+            {
+                //string exp = "(if (> 5 2) (+ 2 3) (- 3 1))";
+                //string exp = "(cond ((> 1 2) a) ((> 5 3) b))";
+                string exp = "(cond ((< 3 2) a) (else (+ 1 2)))";
+
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
 
             public static void Run()
             {
@@ -325,7 +356,8 @@ namespace Evaler
                 //TestBool();
                 //TestList();
                 //TestCons();
-                TestIf();
+                //TestIf();
+                TestCond();
             }
         }
     }
