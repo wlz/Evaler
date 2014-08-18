@@ -26,6 +26,7 @@ namespace Evaler
                 case "list":
                     return exp;
                 case "const":
+                case "lambda":
                 case "exp":
                     return Apply(exp);
                 default:
@@ -45,8 +46,31 @@ namespace Evaler
                 return EvalIf(exp);
             else if (op == "cond")
                 return EvalCond(exp);
+            else if (op.TrimStart('(').StartsWith("lambda"))
+                return EvalLambda(exp);
             else
                 return string.Empty;
+        }
+
+        private static string EvalLambda(string exp)
+        {
+            Dictionary<string, string> env = new Dictionary<string, string>();
+            LoadArgs(car(cdr(car(exp))), cdr(exp), env);
+
+            string calExp = car(cdr(cdr(car(exp))));
+            foreach (string arg in env.Keys)
+                calExp = calExp.Replace(arg, env[arg]);
+
+            return Value(calExp);
+        }
+
+        private static void LoadArgs(string pars, string vals, Dictionary<string, string> env)
+        {
+            if (pars != "()")
+            {
+                env.Add(car(pars), Value(car(vals)));
+                LoadArgs(cdr(pars), cdr(vals), env);
+            }
         }
 
         private static string EvalCond(string exp)
@@ -177,6 +201,8 @@ namespace Evaler
                 return "exp";
             else if (exp.StartsWith("(") && Constructures.Contains(car(exp)))
                 return "const";
+            else if (exp.StartsWith("((lambda"))
+                return "lambda";
             else if (exp.StartsWith("("))
                 return "list";
             else if (Operators.Contains(exp))
@@ -346,6 +372,17 @@ namespace Evaler
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
+            public static void TestLambda()
+            {
+                //((lambda a b) (+ a b))
+                //string exp = "(((lambda a b) (+ a b)) 1 2)";
+                //string exp = "((lambda (a) (+ a a)) 3)";
+                //string exp = "((lambda (a b) (+ a b)) 3 4)";
+                string exp = "((lambda (a b c) (- (+ a b) c)) 3 4 5)";
+
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
+
 
             public static void Run()
             {
@@ -357,7 +394,7 @@ namespace Evaler
                 //TestList();
                 //TestCons();
                 //TestIf();
-                TestCond();
+                TestLambda();
             }
         }
     }
