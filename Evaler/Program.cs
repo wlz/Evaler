@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace Evaler
 {
@@ -9,7 +10,8 @@ namespace Evaler
     {
         static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", "and", "or", "not", "car", "cdr", "cons", "quote" };
         static List<string> Structs = new List<string>() { "if", "cond" };
-        static List<string> Cmds = new List<string>() { "exit", "env" };
+        static List<string> Cmds = new List<string>() { "exit", "env", "save", "load" };
+
         static Dictionary<string, string> env = new Dictionary<string, string>();
 
         static void Main(string[] args)
@@ -60,6 +62,38 @@ namespace Evaler
                 case "env":
                     PrintEnv();
                     break;
+                case "save":
+                    SaveEnv();
+                    break;
+                case "load":
+                    LoadEnv();
+                    break;
+            }
+        }
+
+        private static void SaveEnv()
+        {
+            StringBuilder data = new StringBuilder();
+            foreach (var item in env)
+                data.AppendLine(item.Key + "|" + item.Value);
+
+            File.WriteAllText("env.dat", data.ToString());
+        }
+
+        private static void LoadEnv()
+        {
+            string path = "env.dat";
+            string[] dat = File.ReadAllLines(path);
+
+            foreach (var s in dat)
+            {
+                string[] items = s.Split('|');
+
+                string atom = items[0];
+                string val = items[1];
+
+                if (!env.ContainsKey(atom)) env.Add(atom, val);
+                else env[atom] = val;
             }
         }
 
@@ -129,7 +163,7 @@ namespace Evaler
             }
             else
             {
-                string func = "(" + env[car(exp)] + " " + second(exp) + ")";
+                string func = "(" + env[car(exp)] + " " + cdr(exp).TrimStart('(');
                 return CalcCall(func, env);
             }
         }
@@ -367,143 +401,5 @@ namespace Evaler
                 "(" + exp.Substring(car(exp).Length + 1).TrimStart();
         }
 
-        class Test
-        {
-            //public static void TestCar()
-            //{
-            //    string exp;
-            //    exp = "()";
-            //    //exp = "(aaa)";
-            //    //exp = "(())";
-            //    //exp = "(a b)";
-            //    //exp = "((a) b)";
-            //    //exp = "(a b c)";
-            //    //exp = "((a) b c)";
-            //    //exp = "(() b c)";
-            //    //exp = "(()())";
-            //    //exp = "(())";
-            //    //Console.WriteLine(cdr(exp) + "|");
-            //    Console.WriteLine(car(exp) + "|");
-            //}
-
-            //public static void TestValue()
-            //{
-            //    string exp =
-            //        //"(+ 1 2)";
-            //        //"(+ (+ 1 2) 2)";
-            //        //"(+ (+ 1 2) (+ 3 2))";
-            //    "(+ (+ 1 2) (- 3 2))";
-            //    Console.WriteLine(Value(exp) + "|");
-            //}
-
-            //public static void TestBool()
-            //{
-            //    //string exp = "true";
-            //    //string exp = "false";
-            //    //string exp = "(< 3 4)";
-            //    string exp = "(> 3 4)";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestLogic()
-            //{
-            //    //string exp = "(and (> 2 1) (< 3 4))";
-            //    //string exp = "(& (> (+ 1 2) 1) (< 3 4))";
-            //    //string exp = "(! (> 3 2))";
-            //    string exp = "(! (> 3 4))";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestArith()
-            //{
-            //    //string exp = "aaa";
-            //    string exp = "(- aaa bbb)";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestString()
-            //{
-            //    //string exp = "aaa";
-            //    string exp = "(+ aaa bbb)";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestListOp()
-            //{
-            //    //string exp = "(car a b c)";
-            //    string exp = "(cdr (cdr (a b c)))";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestList()
-            //{
-            //    string exp = "(a b c)";
-            //    //string exp = "(car (cdr (a b c)))";
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestCons()
-            //{
-            //    //string exp = "(cons a (b))";
-            //    //string exp = "(cons a (car (a b)))";
-            //    string exp = "(cons 1 (b))";
-
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestIf()
-            //{
-            //    //string exp = "(if (> 5 2) (+ 2 3) (- 3 1))";
-            //    string exp = "(if (< 1 2) (if (< 3 4) 3 4) b)";
-
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestCond()
-            //{
-            //    //string exp = "(if (> 5 2) (+ 2 3) (- 3 1))";
-            //    //string exp = "(cond ((> 1 2) a) ((> 5 3) b))";
-            //    string exp = "(cond ((< 3 2) a) (else (+ 1 2)))";
-
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestLambda()
-            //{
-            //    //((lambda a b) (+ a b))
-            //    //string exp = "(((lambda a b) (+ a b)) 1 2)";
-            //    //string exp = "((lambda (a) (+ a a)) 3)";
-            //    //string exp = "((lambda (a b) (+ a b)) 3 4)";
-            //    //string exp = "((lambda (a b c) (- (+ a b) c)) 3 4 5)";
-            //    string exp = "((lambda (a) a) 3)";
-
-
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            //public static void TestQuote()
-            //{
-            //    //string exp = "(car (quote (a b)))";
-            //    string exp = "(cdr (quote (a b)))";
-
-            //    Console.WriteLine(Program.Value(exp) + "|");
-            //}
-
-            public static void Run()
-            {
-                //TestValue();
-                //TestListOp();
-                //TestLogic();
-                //TestArith();
-                //TestBool();
-                //TestList();
-                //TestCons();
-                //TestIf();
-                //TestLambda();
-                //TestQuote();
-
-                Console.Read();
-            }
-        }
     }
 }
