@@ -10,7 +10,7 @@ namespace Evaler
     {
         static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", "and", "or", "not", "car", "cdr", "cons", "quote" };
         static List<string> Structs = new List<string>() { "if", "cond" };
-        static List<string> Cmds = new List<string>() { "exit", "env", "save", "load" };
+        static List<string> Commands = new List<string>() { "help", "exit", "env", "save", "load" };
 
         static Dictionary<string, string> env = new Dictionary<string, string>();
 
@@ -21,7 +21,7 @@ namespace Evaler
 
         static void Repl()
         {
-            Console.WriteLine("Welcome to Evaler !\r\n");
+            Console.WriteLine("Welcome to Evaler V1.0 :)\r\n");
 
             while (true)
             {
@@ -29,7 +29,7 @@ namespace Evaler
 
                 string exp = Console.ReadLine();
 
-                if (exp.StartsWith("(") && Cmds.Contains(car(exp)))
+                if (exp.StartsWith("(") && Commands.Contains(car(exp)))
                 {
                     ExecCmd(car(exp));
                     continue;
@@ -67,6 +67,9 @@ namespace Evaler
                     break;
                 case "load":
                     LoadEnv();
+                    break;
+                case "help":
+                    Console.WriteLine("need to be done :)");
                     break;
             }
         }
@@ -122,7 +125,7 @@ namespace Evaler
                     return CalcCall(exp, env);
                 case "lambda":
                     return CalcLambda(exp, env);
-                case "def":
+                case "define":
                     return InterDefine(exp, env);
                 default:
                     return "error";
@@ -337,8 +340,8 @@ namespace Evaler
                 return "struct";
             else if (exp.StartsWith("(") && car(exp) == "lambda")
                 return "lambda";
-            else if (exp.StartsWith("(") && car(exp) == "def")
-                return "def";
+            else if (exp.StartsWith("(") && car(exp) == "define")
+                return "define";
             else if (exp.StartsWith("((lambda") || exp.StartsWith("(") && env.ContainsKey(car(exp)))
                 return "call";
             else
@@ -400,6 +403,5 @@ namespace Evaler
                 "()" :
                 "(" + exp.Substring(car(exp).Length + 1).TrimStart();
         }
-
     }
 }
