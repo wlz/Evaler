@@ -7,13 +7,12 @@ namespace Evaler
 {
     class Program
     {
-        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "&", "|", "!", "car", "cdr", "cons" };
-        static List<string> Constructures = new List<string>() { "if", "cond" };
+        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", "and", "or", "not", "car", "cdr", "cons", "quote" };
+        static List<string> Structs = new List<string>() { "if", "cond" };
 
         static void Main(string[] args)
         {
-            Test.Run();
-            //Eval();
+            Eval();
         }
 
         static void Eval()
@@ -23,7 +22,6 @@ namespace Evaler
                 Console.Write(">");
                 string exp = Console.ReadLine();
                 Console.WriteLine(Value(exp));
-
                 if (exp == "(exit)")
                     break;
             }
@@ -35,34 +33,74 @@ namespace Evaler
             {
                 case "bool":
                 case "num":
-                case "item":
-                case "list":
                     return exp;
-                case "const":
-                case "lambda":
                 case "exp":
-                    return Apply(exp);
+                    return CalcExp(car(exp), cdr(exp));
+                case "struct":
+                    return CalcStruct(exp);
                 default:
-                    return string.Empty;
+                    return "fail";
             }
         }
 
-        static string Apply(string exp)
+        private static string CalcStruct(string exp)
         {
-            string op = car(exp);
+            switch (car(exp))
+            {
+                case "if":
+                    return EvalIf(exp);
+                case "cond":
+                    return EvalCond(exp);
+                default:
+                    return "fail";
+            }
+        }
 
-            if (op == "car" || op == "cdr" || op == "!")
-                return Apply(op, cdr(exp));
-            else if (Operators.Contains(op))
-                return Apply(car(exp), car(cdr(exp)), car(cdr(cdr(exp))));
-            else if (op == "if")
-                return EvalIf(exp);
-            else if (op == "cond")
-                return EvalCond(exp);
-            else if (op.TrimStart('(').StartsWith("lambda"))
-                return EvalLambda(exp);
-            else
-                return string.Empty;
+        static string CalcExp(string op, string opd)
+        {
+            switch (op)
+            {
+                case "+":
+                case "-":
+                    return ArithOp(op, Value(car(opd)), Value(second(opd)));
+                case ">":
+                case "<":
+                case "=":
+                    return CompOp(op, Value(car(opd)), Value(second(opd)));
+                case "and":
+                case "or":
+                case "not":
+                    return LogicOp(op, opd);
+                default:
+                    return "fail";
+            }
+        }
+
+        static string second(string exp)
+        {
+            return car(cdr(exp));
+        }
+
+        static string third(string exp)
+        {
+            return car(cdr(cdr(exp)));
+        }
+
+        private static string EvalLiop(string op, string opd)
+        {
+            switch (op)
+            {
+                case "cons":
+                    //(cons (quote a) (quote b))
+                    break;
+                case "car":
+                case "cdr":
+                    break;
+                default:
+                    break;
+            }
+
+            return "";
         }
 
         private static string EvalLambda(string exp)
@@ -115,48 +153,9 @@ namespace Evaler
                    Value(car(cdr(cdr(cdr(exp)))));
         }
 
-        static string Apply(string op, string opd)
-        {
-            string val = Value(car(opd));
-            switch (op)
-            {
-                case "!":
-                    return val == "#f" ? "#t" : "#f";
-                case "car":
-                    return car(val);
-                case "cdr":
-                    return cdr(val);
-                default:
-                    return string.Empty;
-            }
-        }
-
-        static string Apply(string op, string opd1, string opd2)
-        {
-            string val1 = Value(opd1), val2 = Value(opd2);
-
-            switch (op)
-            {
-                case "+":
-                case "-":
-                    return ArithOp(op, val1, val2);
-                case ">":
-                case "<":
-                    return CompOp(op, val1, val2);
-                case "&":
-                case "|":
-                    return LogicOp(op, val1, val2);
-                case "cons":
-                    return cons(val1, val2);
-                default:
-                    return string.Empty;
-            }
-        }
-
-
         static string cons(string val1, string val2)
         {
-            return "(" + val1 + " " + val2 + ")";
+            return string.Empty;
         }
 
         static string ArithOp(string op, string val1, string val2)
@@ -188,19 +187,27 @@ namespace Evaler
                     return (v1 > v2) ? "#t" : "#f";
                 else if (op == "<")
                     return v1 < v2 ? "#t" : "#f";
+                else if (op == "=")
+                    return v1 == v2 ? "#t" : "#f";
             }
 
-            return "f";
+            return "#f";
         }
 
-        static string LogicOp(string op, string val1, string val2)
+        static string LogicOp(string op, string opd)
         {
-            if (Type(val1) == "bool" && Type(val2) == "bool")
+            if (op == "not")
+                return Value(car(opd)) == "#t" ? "#f" : "#t";
+            else if (op == "and" || op == "or")
             {
-                if (op == "&")
-                    return (val1 == "#t" && val2 == "#t") ? "#t" : "#f";
-                else if (op == "|")
-                    return (val1 == "#t" || val2 == "#t") ? "#t" : "#f";
+                string val1 = Value(car(opd)), val2 = Value(second(opd));
+                switch (op)
+                {
+                    case "and":
+                        return val1 == "#t" && val2 == "#t" ? "#t" : "#f";
+                    case "or":
+                        return val1 == "#t" || val2 == "#t" ? "#t" : "#f";
+                }
             }
 
             return "#f";
@@ -210,22 +217,29 @@ namespace Evaler
         {
             int num = 0;
 
-            if (exp.StartsWith("(") && Operators.Contains(car(exp)))
-                return "exp";
-            else if (exp.StartsWith("(") && Constructures.Contains(car(exp)))
-                return "const";
-            else if (exp.StartsWith("((lambda"))
-                return "lambda";
-            else if (exp.StartsWith("("))
-                return "list";
-            else if (Operators.Contains(exp))
-                return "op";
-            else if (exp == "#t" || exp == "#f")
+            if (exp == "#t" || exp == "#f")
                 return "bool";
             else if (int.TryParse(exp, out num))
                 return "num";
+            else if (exp.StartsWith("(") && Operators.Contains(car(exp)))
+                return "exp";
+            else if (exp.StartsWith("(") && Structs.Contains(car(exp)))
+                return "struct";
             else
-                return "item";
+                return "unknown";
+
+            //else if (exp.StartsWith("((lambda"))
+            //    return "lambda";
+            //else if (exp.StartsWith("("))
+            //    return "list";
+            //else if (Operators.Contains(exp))
+            //    return "op";
+            //else if (exp == "#t" || exp == "#f")
+            //    return "bool";
+            //else if (int.TryParse(exp, out num))
+            //    return "num";
+            //else
+            //    return "item";
         }
 
         static string car(string exp)
@@ -398,6 +412,13 @@ namespace Evaler
                 Console.WriteLine(Program.Value(exp) + "|");
             }
 
+            public static void TestQuote()
+            {
+                //string exp = "(car (quote (a b)))";
+                string exp = "(cdr (quote (a b)))";
+
+                Console.WriteLine(Program.Value(exp) + "|");
+            }
 
             public static void Run()
             {
@@ -405,11 +426,12 @@ namespace Evaler
                 //TestListOp();
                 //TestLogic();
                 //TestArith();
-                TestBool();
+                //TestBool();
                 //TestList();
                 //TestCons();
                 //TestIf();
                 //TestLambda();
+                TestQuote();
 
                 Console.Read();
             }
