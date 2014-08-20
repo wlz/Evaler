@@ -71,6 +71,8 @@ namespace Evaler
                 case "or":
                 case "not":
                     return LogicOp(op, opd);
+                case "quote":
+                    return car(opd);
                 default:
                     return "fail";
             }
@@ -227,19 +229,6 @@ namespace Evaler
                 return "struct";
             else
                 return "unknown";
-
-            //else if (exp.StartsWith("((lambda"))
-            //    return "lambda";
-            //else if (exp.StartsWith("("))
-            //    return "list";
-            //else if (Operators.Contains(exp))
-            //    return "op";
-            //else if (exp == "#t" || exp == "#f")
-            //    return "bool";
-            //else if (int.TryParse(exp, out num))
-            //    return "num";
-            //else
-            //    return "item";
         }
 
         static string car(string exp)
