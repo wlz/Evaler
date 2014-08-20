@@ -9,33 +9,67 @@ namespace Evaler
     {
         static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", "and", "or", "not", "car", "cdr", "cons", "quote" };
         static List<string> Structs = new List<string>() { "if", "cond" };
+        static List<string> Cmds = new List<string>() { "exit", "env" };
+        static Dictionary<string, string> env = new Dictionary<string, string>();
 
         static void Main(string[] args)
         {
-            Eval();
+            Repl();
         }
 
-        static void Eval()
+        static void Repl()
         {
+            Console.WriteLine("Welcome to Evaler !\r\n");
+
             while (true)
             {
-                Console.Write(">");
+                Console.Write("> ");
+
                 string exp = Console.ReadLine();
 
-                Dictionary<string, string> env = new Dictionary<string, string>();
+                if (exp.StartsWith("(") && Cmds.Contains(car(exp)))
+                {
+                    ExecCmd(car(exp));
+                    continue;
+                }
 
-                env.Add("a", "111");
-                env.Add("b", "111");
-                env.Add("c", "111");
-                env.Add("d", "111");
+                while (exp.StartsWith("(") && !exp.EndsWith(")"))
+                {
+                    if (!exp.EndsWith(" "))
+                        exp += " ";
+                    exp += Console.ReadLine();
+                }
 
-                Console.WriteLine(Value(exp, env));
-                if (exp == "(exit)")
+                if (!string.IsNullOrEmpty(exp))
+                {
+                    string val = Interp(exp, env);
+
+                    if (!string.IsNullOrEmpty(val))
+                        Console.WriteLine(val);
+                }
+            }
+        }
+
+        private static void ExecCmd(string cmd)
+        {
+            switch (cmd)
+            {
+                case "exit":
+                    Environment.Exit(0);
+                    break;
+                case "env":
+                    PrintEnv();
                     break;
             }
         }
 
-        static string Value(string exp, Dictionary<string, string> env)
+        private static void PrintEnv()
+        {
+            foreach (var item in env)
+                Console.WriteLine("  {0}:{1}", item.Key, item.Value);
+        }
+
+        static string Interp(string exp, Dictionary<string, string> env)
         {
             switch (Type(exp))
             {
@@ -48,37 +82,75 @@ namespace Evaler
                     return CalcExp(car(exp), cdr(exp), env);
                 case "struct":
                     return CalcStruct(exp, env);
+                case "eval":
+                    return "";
                 case "call":
                     return CalcCall(exp, env);
                 case "lambda":
                     return CalcLambda(exp, env);
+                case "def":
+                    return InterDefine(exp, env);
                 default:
                     return "error";
             }
         }
 
+        private static string InterDefine(string exp, Dictionary<string, string> env)
+        {
+            if (Type(second(exp)) == "atom")
+            {
+                string atom = second(exp);
+                string val = Interp(third(exp), env);
+
+                if (!env.ContainsKey(atom)) env.Add(atom, val);
+                else env[atom] = val;
+            }
+            else
+            {
+                string func = car(second(exp));
+
+                if (!env.ContainsKey(func)) env.Add(func, "(lambda " + cdr(second(exp)) + " " + third(exp) + ")");
+                else env[func] = third(exp);
+            }
+
+            return string.Empty;
+        }
+
         private static string CalcCall(string exp, Dictionary<string, string> env)
         {
-            string func = car(exp);
-            string args = cdr(exp);
+            if (exp.StartsWith("((lambda"))
+            {
+                string func = car(exp);
+                string args = cdr(exp);
 
-            LoadArgs(second(func), args, env);
+                LoadArgs(second(func), args, env);
 
-            return Value(third(func), env);
+                return Interp(third(func), env);
+            }
+            else
+            {
+                string func = "(" + env[car(exp)] + " " + second(exp) + ")";
+                return CalcCall(func, env);
+            }
         }
 
         private static void LoadArgs(string pars, string vals, Dictionary<string, string> env)
         {
             if (pars != "()")
             {
-                env.Add(car(pars), Value(car(vals), env));
+                string atom = car(pars);
+                string val = Interp(car(vals), env);
+
+                if (!env.ContainsKey(atom)) env.Add(atom, val);
+                else env[atom] = val;
+
                 LoadArgs(cdr(pars), cdr(vals), env);
             }
         }
 
         static string CalcLambda(string exp, Dictionary<string, string> env)
         {
-            return Value(third(exp), env);
+            return Interp(third(exp), env);
         }
 
         static string CalcStruct(string exp, Dictionary<string, string> env)
@@ -100,11 +172,11 @@ namespace Evaler
             {
                 case "+":
                 case "-":
-                    return ArithOp(op, Value(car(opd), env), Value(second(opd), env));
+                    return ArithOp(op, Interp(car(opd), env), Interp(second(opd), env));
                 case ">":
                 case "<":
                 case "=":
-                    return CompOp(op, Value(car(opd), env), Value(second(opd), env));
+                    return CompOp(op, Interp(car(opd), env), Interp(second(opd), env));
                 case "and":
                 case "or":
                 case "not":
@@ -126,20 +198,6 @@ namespace Evaler
             return car(cdr(cdr(exp)));
         }
 
-        //private static string EvalLambda(string exp)
-        //{
-        //    Dictionary<string, string> env = new Dictionary<string, string>();
-        //    LoadArgs(car(cdr(car(exp))), cdr(exp), env);
-
-        //    string calExp = car(cdr(cdr(car(exp))));
-        //    foreach (string arg in env.Keys)
-        //        calExp = calExp.Replace(arg, env[arg]);
-
-        //    return Value(calExp);
-        //}
-
-
-
         private static string EvalCond(string exp, Dictionary<string, string> env)
         {
             return EvalCondsRecursive(cdr(exp), env);
@@ -154,9 +212,9 @@ namespace Evaler
                 string exp = car(conds);
 
                 if (car(exp) == "else")
-                    return Value(car(cdr(exp)), env);
+                    return Interp(car(cdr(exp)), env);
                 else
-                    return Value(car(exp), env) == "#t" ? Value(car(cdr(exp)), env) : EvalCondsRecursive(cdr(conds), env);
+                    return Interp(car(exp), env) == "#t" ? Interp(car(cdr(exp)), env) : EvalCondsRecursive(cdr(conds), env);
             }
         }
 
@@ -164,9 +222,9 @@ namespace Evaler
         {
             string cond = car(cdr(exp));
 
-            return Value(cond, env) == "#t" ?
-                   Value(car(cdr(cdr(exp))), env) :
-                   Value(car(cdr(cdr(cdr(exp)))), env);
+            return Interp(cond, env) == "#t" ?
+                   Interp(car(cdr(cdr(exp))), env) :
+                   Interp(car(cdr(cdr(cdr(exp)))), env);
         }
 
         static string cons(string val1, string val2)
@@ -213,10 +271,10 @@ namespace Evaler
         static string LogicOp(string op, string opd, Dictionary<string, string> env)
         {
             if (op == "not")
-                return Value(car(opd), env) == "#t" ? "#f" : "#t";
+                return Interp(car(opd), env) == "#t" ? "#f" : "#t";
             else if (op == "and" || op == "or")
             {
-                string val1 = Value(car(opd), env), val2 = Value(second(opd), env);
+                string val1 = Interp(car(opd), env), val2 = Interp(second(opd), env);
                 switch (op)
                 {
                     case "and":
@@ -245,7 +303,9 @@ namespace Evaler
                 return "struct";
             else if (exp.StartsWith("(") && car(exp) == "lambda")
                 return "lambda";
-            else if (exp.StartsWith("((lambda"))
+            else if (exp.StartsWith("(") && car(exp) == "def")
+                return "def";
+            else if (exp.StartsWith("((lambda") || exp.StartsWith("(") && env.ContainsKey(car(exp)))
                 return "call";
             else
                 return "unknown";
