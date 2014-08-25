@@ -21,7 +21,7 @@ namespace Evaler
 
         static void Repl()
         {
-            Console.WriteLine("Welcome to Evaler V1.0 :)\r\n");
+            Console.WriteLine("Welcome to Evaler :)\r\n");
 
             while (true)
             {
@@ -31,7 +31,7 @@ namespace Evaler
 
                 if (exp.StartsWith("(") && Commands.Contains(car(exp)))
                 {
-                    ExecCmd(car(exp));
+                    ExecCmd(car(exp), second(exp));
                     continue;
                 }
 
@@ -52,7 +52,7 @@ namespace Evaler
             }
         }
 
-        private static void ExecCmd(string cmd)
+        private static void ExecCmd(string cmd, string args)
         {
             switch (cmd)
             {
@@ -66,7 +66,7 @@ namespace Evaler
                     SaveEnv();
                     break;
                 case "load":
-                    LoadEnv();
+                    LoadScript(args);
                     break;
                 case "help":
                     Console.WriteLine("need to be done :)");
@@ -85,19 +85,14 @@ namespace Evaler
 
         private static void LoadEnv()
         {
-            string path = "env.dat";
+            LoadScript("env.dat");
+        }
+
+        private static void LoadScript(string path)
+        {
             string[] dat = File.ReadAllLines(path);
-
             foreach (var s in dat)
-            {
-                string[] items = s.Split('|');
-
-                string atom = items[0];
-                string val = items[1];
-
-                if (!env.ContainsKey(atom)) env.Add(atom, val);
-                else env[atom] = val;
-            }
+                Interp(s, env);
         }
 
         private static void PrintEnv()
@@ -113,8 +108,9 @@ namespace Evaler
                 case "bool":
                 case "num":
                     return exp;
-                case "atom":
-                    return env.ContainsKey(exp) ? env[exp] : "error";
+                case "var":
+                    return env.ContainsKey(exp) ? env[exp] :
+                           string.Format("variable {0} not bound\r\n", exp);
                 case "exp":
                     return CalcExp(car(exp), cdr(exp), env);
                 case "struct":
@@ -134,13 +130,13 @@ namespace Evaler
 
         private static string InterDefine(string exp, Dictionary<string, string> env)
         {
-            if (Type(second(exp)) == "atom")
+            if (Type(second(exp)) == "var")
             {
-                string atom = second(exp);
+                string var = second(exp);
                 string val = Interp(third(exp), env);
 
-                if (!env.ContainsKey(atom)) env.Add(atom, val);
-                else env[atom] = val;
+                if (!env.ContainsKey(var)) env.Add(var, val);
+                else env[var] = val;
             }
             else
             {
@@ -166,7 +162,7 @@ namespace Evaler
             }
             else
             {
-                string func = "(" + env[car(exp)] + " " + cdr(exp).TrimStart('(');
+                string func = "(" + env[car(exp)] + " " + cdr(exp).Substring(1);
                 return CalcCall(func, env);
             }
         }
@@ -175,11 +171,11 @@ namespace Evaler
         {
             if (pars != "()")
             {
-                string atom = car(pars);
+                string var = car(pars);
                 string val = Interp(car(vals), env);
 
-                if (!env.ContainsKey(atom)) env.Add(atom, val);
-                else env[atom] = val;
+                if (!env.ContainsKey(var)) env.Add(var, val);
+                else env[var] = val;
 
                 LoadArgs(cdr(pars), cdr(vals), env);
             }
@@ -333,7 +329,7 @@ namespace Evaler
             else if (int.TryParse(exp, out num))
                 return "num";
             else if (!exp.StartsWith("("))
-                return "atom";
+                return "var";
             else if (exp.StartsWith("(") && Operators.Contains(car(exp)))
                 return "exp";
             else if (exp.StartsWith("(") && Structs.Contains(car(exp)))
@@ -385,7 +381,6 @@ namespace Evaler
 
                 if (exp[i] == ')')
                     cnt--;
-
 
                 if (cnt == 0)
                 {
