@@ -8,7 +8,9 @@ namespace Evaler
 {
     class Program
     {
-        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", "and", "or", "not", "car", "cdr", "cons", "quote" };
+        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", 
+            "and", "or", "not", "car", "cdr", "cons", "quote" };
+
         static List<string> Structs = new List<string>() { "if", "cond" };
         static List<string> Commands = new List<string>() { "help", "exit", "env", "save", "load" };
 
@@ -118,13 +120,14 @@ namespace Evaler
                 case "eval":
                     return "";
                 case "call":
-                    return CalcCall(exp, env);
+                    //return CalcCall(exp, env);
+                    return Apply(exp, env);
                 case "lambda":
-                    return CalcLambda(exp, env);
+                    return exp;
                 case "define":
                     return InterDefine(exp, env);
                 default:
-                    return "error";
+                    return string.Format("fail to interp {0}\r\n", exp);
             }
         }
 
@@ -142,15 +145,33 @@ namespace Evaler
             {
                 string func = car(second(exp));
 
-                if (!env.ContainsKey(func)) env.Add(func, "(lambda " + cdr(second(exp)) + " " + third(exp) + ")");
+                if (!env.ContainsKey(func)) env.Add(func,
+                    "(lambda " + cdr(second(exp)) + " " + third(exp) + ")");
                 else env[func] = third(exp);
             }
 
             return string.Empty;
         }
 
+        private static string Apply(string exp, Dictionary<string, string> env)
+        {
+            string arg = Interp(second(exp), env);
+
+            if (exp.StartsWith("((lambda"))
+                ExtEnv(car(second(car(exp))), arg);
+
+            return Interp(third(car(exp)), env);
+        }
+
+        private static void ExtEnv(string key, string val)
+        {
+            if (!env.ContainsKey(key)) env.Add(key, val);
+            else env[key] = val;
+        }
+
         private static string CalcCall(string exp, Dictionary<string, string> env)
         {
+            //e1,e2 
             if (exp.StartsWith("((lambda"))
             {
                 string func = car(exp);
@@ -174,8 +195,7 @@ namespace Evaler
                 string var = car(pars);
                 string val = Interp(car(vals), env);
 
-                if (!env.ContainsKey(var)) env.Add(var, val);
-                else env[var] = val;
+                ExtEnv(var, val);
 
                 LoadArgs(cdr(pars), cdr(vals), env);
             }
@@ -195,7 +215,7 @@ namespace Evaler
                 case "cond":
                     return EvalCond(exp, env);
                 default:
-                    return "error";
+                    return string.Format("unknown struct {0}\r\n", car(exp));
             }
         }
 
@@ -247,7 +267,9 @@ namespace Evaler
                 if (car(exp) == "else")
                     return Interp(car(cdr(exp)), env);
                 else
-                    return Interp(car(exp), env) == "#t" ? Interp(car(cdr(exp)), env) : EvalCondsRecursive(cdr(conds), env);
+                    return Interp(car(exp), env) == "#t" ?
+                        Interp(car(cdr(exp)), env) :
+                        EvalCondsRecursive(cdr(conds), env);
             }
         }
 
@@ -341,7 +363,7 @@ namespace Evaler
             else if (exp.StartsWith("((lambda") || exp.StartsWith("(") && env.ContainsKey(car(exp)))
                 return "call";
             else
-                return "unknown";
+                return string.Format("unknown type {0}\r\n", exp);
         }
 
         static string car(string exp)
