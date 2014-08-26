@@ -103,6 +103,35 @@ namespace Evaler
                 Console.WriteLine("  {0}:{1}", item.Key, item.Value);
         }
 
+        private static string SerialEnv(Dictionary<string, string> env)
+        {
+            StringBuilder cont = new StringBuilder();
+
+            cont.Append("(");
+            foreach (var k in env)
+                cont.Append("(" + k.Key + " " + k.Value + ")");
+            cont.Append(")");
+
+            return cont.ToString();
+        }
+
+        private static Dictionary<string, string> DeserialEnv(string cont)
+        {
+            Dictionary<string, string> env = new Dictionary<string, string>();
+            RcursiveDeserial(cont, env);
+            return env;
+        }
+
+        private static void RcursiveDeserial(string cont, Dictionary<string, string> env)
+        {
+            string pair = car(cont);
+            if (pair != "null")
+            {
+                env.Add(car(pair), car(cdr(pair)));
+                RcursiveDeserial(cdr(cont), env);
+            }
+        }
+
         static string Interp(string exp, Dictionary<string, string> env)
         {
             switch (Type(exp))
@@ -114,21 +143,26 @@ namespace Evaler
                     return env.ContainsKey(exp) ? env[exp] :
                            string.Format("variable {0} not bound\r\n", exp);
                 case "exp":
-                    return CalcExp(car(exp), cdr(exp), env);
+                    return InterpExp(car(exp), cdr(exp), env);
                 case "struct":
-                    return CalcStruct(exp, env);
+                    return InterpStruct(exp, env);
+                case "lambda":
+                    return InterpLambda(exp, env);
                 case "apply":
                     return Apply(exp, env);
-                case "lambda":
-                    return exp;
                 case "define":
-                    return InterDefine(exp, env);
+                    return InterpDef(exp, env);
                 default:
                     return string.Format("fail to interp {0}\r\n", exp);
             }
         }
 
-        private static string InterDefine(string exp, Dictionary<string, string> env)
+        private static string InterpLambda(string exp, Dictionary<string, string> env)
+        {
+            return "(" + exp + " " + SerialEnv(env) + ")";
+        }
+
+        private static string InterpDef(string exp, Dictionary<string, string> env)
         {
             if (Type(second(exp)) == "var")
             {
@@ -152,20 +186,22 @@ namespace Evaler
 
         private static string Apply(string exp, Dictionary<string, string> env)
         {
-            //(e1 e2)
-            //(lambda (m) (lambda (n) (+ m n)))
-            //
-            //((e1 e2) e3) 
-            Dictionary<string, string> contex = new Dictionary<string, string>();
-            foreach (var k in env)
-                contex.Add(k.Key, k.Value);
+            string e1 = Interp(car(exp), env);
+            string e2 = Interp(car(cdr(exp)), env);
 
-            string e2 = Interp(second(exp), env);
+            if (car(e1).StartsWith("(lambda"))
+            {
+                Dictionary<string, string> contex = DeserialEnv(car(cdr(e1)));
+                ExtEnv(contex, car(second(car(e1))), e2);
+                return Interp(third(car(exp)), contex);
+            }
+            else
+            {
+                //(() 1)
+                //(lambda (n) (lambda (m) (+ m n)))
+                return string.Empty;
+            }
 
-            ExtEnv(contex, car(second(car(exp))), e2);
-
-            return exp.StartsWith("((lambda") ? Interp(third(car(exp)), contex) :
-                Apply(car(exp), contex);
         }
 
         private static void ExtEnv(string key, string val)
@@ -179,7 +215,7 @@ namespace Evaler
             else env[key] = val;
         }
 
-        static string CalcStruct(string exp, Dictionary<string, string> env)
+        static string InterpStruct(string exp, Dictionary<string, string> env)
         {
             switch (car(exp))
             {
@@ -192,7 +228,7 @@ namespace Evaler
             }
         }
 
-        static string CalcExp(string op, string opd, Dictionary<string, string> env)
+        static string InterpExp(string op, string opd, Dictionary<string, string> env)
         {
             switch (op)
             {
