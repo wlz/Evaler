@@ -8,7 +8,7 @@ namespace Evaler
 {
     class Program
     {
-        static List<string> Operators = new List<string>() { "+", "-", ">", "<", "=", 
+        static List<string> Operators = new List<string>() { "+", "-", "*","/",">", "<", "=", 
             "and", "or", "not", "car", "cdr", "cons", "quote" };
 
         static List<string> Structs = new List<string>() { "if", "cond" };
@@ -117,10 +117,7 @@ namespace Evaler
                     return CalcExp(car(exp), cdr(exp), env);
                 case "struct":
                     return CalcStruct(exp, env);
-                case "eval":
-                    return "";
-                case "call":
-                    //return CalcCall(exp, env);
+                case "apply":
                     return Apply(exp, env);
                 case "lambda":
                     return exp;
@@ -155,55 +152,31 @@ namespace Evaler
 
         private static string Apply(string exp, Dictionary<string, string> env)
         {
-            string arg = Interp(second(exp), env);
+            //(e1 e2)
+            //(lambda (m) (lambda (n) (+ m n)))
+            //
+            //((e1 e2) e3) 
+            Dictionary<string, string> contex = new Dictionary<string, string>();
+            foreach (var k in env)
+                contex.Add(k.Key, k.Value);
 
-            if (exp.StartsWith("((lambda"))
-                ExtEnv(car(second(car(exp))), arg);
+            string e2 = Interp(second(exp), env);
 
-            return Interp(third(car(exp)), env);
+            ExtEnv(contex, car(second(car(exp))), e2);
+
+            return exp.StartsWith("((lambda") ? Interp(third(car(exp)), contex) :
+                Apply(car(exp), contex);
         }
 
         private static void ExtEnv(string key, string val)
         {
+            ExtEnv(env, key, val);
+        }
+
+        private static void ExtEnv(Dictionary<string, string> env, string key, string val)
+        {
             if (!env.ContainsKey(key)) env.Add(key, val);
             else env[key] = val;
-        }
-
-        private static string CalcCall(string exp, Dictionary<string, string> env)
-        {
-            //e1,e2 
-            if (exp.StartsWith("((lambda"))
-            {
-                string func = car(exp);
-                string args = cdr(exp);
-
-                LoadArgs(second(func), args, env);
-
-                return Interp(third(func), env);
-            }
-            else
-            {
-                string func = "(" + env[car(exp)] + " " + cdr(exp).Substring(1);
-                return CalcCall(func, env);
-            }
-        }
-
-        private static void LoadArgs(string pars, string vals, Dictionary<string, string> env)
-        {
-            if (pars != "()")
-            {
-                string var = car(pars);
-                string val = Interp(car(vals), env);
-
-                ExtEnv(var, val);
-
-                LoadArgs(cdr(pars), cdr(vals), env);
-            }
-        }
-
-        static string CalcLambda(string exp, Dictionary<string, string> env)
-        {
-            return Interp(third(exp), env);
         }
 
         static string CalcStruct(string exp, Dictionary<string, string> env)
@@ -225,6 +198,8 @@ namespace Evaler
             {
                 case "+":
                 case "-":
+                case "*":
+                case "/":
                     return ArithOp(op, Interp(car(opd), env), Interp(second(opd), env));
                 case ">":
                 case "<":
@@ -289,22 +264,30 @@ namespace Evaler
 
         static string ArithOp(string op, string val1, string val2)
         {
-            string result = string.Empty;
-
             if (Type(val1) == "num" && Type(val2) == "num")
             {
-                if (op == "+")
-                    return (int.Parse(val1) + int.Parse(val2)).ToString();
-                else if (op == "-")
-                    return (int.Parse(val1) - int.Parse(val2)).ToString();
+                int v1 = int.Parse(val1), v2 = int.Parse(val2);
+                switch (op)
+                {
+                    case "+":
+                        return (v1 + v2).ToString();
+                    case "-":
+                        return (v1 - v2).ToString();
+                    case "*":
+                        return (v1 * v2).ToString();
+                    case "/":
+                        return (v1 / v2).ToString();
+                    default:
+                        return string.Empty;
+                }
             }
             else
             {
                 if (op == "+")
                     return val1 + val2;
-            }
 
-            return string.Empty;
+                return string.Empty;
+            }
         }
 
         static string CompOp(string op, string val1, string val2)
@@ -350,20 +333,35 @@ namespace Evaler
                 return "bool";
             else if (int.TryParse(exp, out num))
                 return "num";
-            else if (!exp.StartsWith("("))
+            else if (IsAtom(exp))
                 return "var";
-            else if (exp.StartsWith("(") && Operators.Contains(car(exp)))
+            else if (Operators.Contains(car(exp)))
                 return "exp";
-            else if (exp.StartsWith("(") && Structs.Contains(car(exp)))
+            else if (Structs.Contains(car(exp)))
                 return "struct";
-            else if (exp.StartsWith("(") && car(exp) == "lambda")
+            else if (car(exp) == "lambda")
                 return "lambda";
-            else if (exp.StartsWith("(") && car(exp) == "define")
+            else if (car(exp) == "define")
                 return "define";
-            else if (exp.StartsWith("((lambda") || exp.StartsWith("(") && env.ContainsKey(car(exp)))
-                return "call";
+            else if (IsList(car(exp)) && (cdr(cdr(exp)) == "()"))
+                return "apply";
             else
                 return string.Format("unknown type {0}\r\n", exp);
+        }
+
+        static bool IsList(string exp)
+        {
+            return exp.StartsWith("(") && exp.EndsWith(")");
+        }
+
+        static bool IsAtom(string exp)
+        {
+            return !IsList(exp) && !IsKeyword(exp);
+        }
+
+        static bool IsKeyword(string exp)
+        {
+            return Operators.Contains(exp) || Structs.Contains(exp) || Commands.Contains(exp);
         }
 
         static string car(string exp)
