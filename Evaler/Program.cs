@@ -189,19 +189,9 @@ namespace Evaler
             string e1 = Interp(car(exp), env);
             string e2 = Interp(car(cdr(exp)), env);
 
-            if (car(e1).StartsWith("(lambda"))
-            {
-                Dictionary<string, string> contex = DeserialEnv(car(cdr(e1)));
-                ExtEnv(contex, car(second(car(e1))), e2);
-                return Interp(third(car(exp)), contex);
-            }
-            else
-            {
-                //(() 1)
-                //(lambda (n) (lambda (m) (+ m n)))
-                return string.Empty;
-            }
-
+            Dictionary<string, string> contex = DeserialEnv(car(cdr(e1)));
+            ExtEnv(contex, car(second(car(e1))), e2);
+            return Interp(third(car(e1)), contex);
         }
 
         private static void ExtEnv(string key, string val)
