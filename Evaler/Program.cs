@@ -177,7 +177,7 @@ namespace Evaler
                 string func = car(second(exp));
 
                 if (!env.ContainsKey(func)) env.Add(func,
-                    "(lambda " + cdr(second(exp)) + " " + third(exp) + ")");
+                    "((lambda " + cdr(second(exp)) + " " + third(exp) + ") ())");
                 else env[func] = third(exp);
             }
 
@@ -369,7 +369,7 @@ namespace Evaler
                 return "lambda";
             else if (car(exp) == "define")
                 return "define";
-            else if (IsList(car(exp)) && (cdr(cdr(exp)) == "()"))
+            else if (car(exp) != "null" && (cdr(cdr(exp)) == "()"))
                 return "apply";
             else
                 return string.Format("unknown type {0}\r\n", exp);
@@ -394,7 +394,7 @@ namespace Evaler
         {
             if (exp == "()" || string.IsNullOrEmpty(exp))
                 return "null";
-            else if (exp[1] == '(')
+            else if (exp.Length >= 1 && exp[1] == '(')
                 return FirstList(exp);
             else
                 return FirstItem(exp);
