@@ -9,7 +9,7 @@ namespace Evaler
     class Program
     {
         static List<string> Operators = new List<string>() { "+", "-", "*","/",">", "<", "=", 
-            "and", "or", "not", "car", "cdr", "cons", "quote" };
+            "and", "or", "not", "car", "cdr", "cons","list", "quote" };
 
         static List<string> Structs = new List<string>() { "if", "cond" };
         static List<string> Commands = new List<string>() { "help", "exit", "env", "save", "load" };
@@ -235,11 +235,67 @@ namespace Evaler
                 case "or":
                 case "not":
                     return LogicOp(op, opd, env);
+                case "cons":
+                case "list":
+                case "car":
+                case "cdr":
+                    return ListOp(op, opd, env);
                 case "quote":
                     return car(opd);
                 default:
                     return "error";
             }
+        }
+
+        private static string ListOp(string op, string opd, Dictionary<string, string> env)
+        {
+            switch (op)
+            {
+                case "cons":
+                    return InterpCons(opd, env);
+                case "list":
+                    return InterpList(opd, env);
+                case "car":
+                    return car(Interp(car(opd), env));
+                case "cdr":
+                    return cdr(Interp(car(opd), env));
+                default:
+                    break;
+            }
+
+            return string.Empty;
+        }
+
+
+        private static string InterpList(string opd, Dictionary<string, string> env)
+        {
+            StringBuilder result = new StringBuilder("(");
+            RecInterpList(opd, env, result);
+            return result.ToString().TrimEnd() + ")";
+        }
+
+        private static void RecInterpList(string opd, Dictionary<string, string> env, StringBuilder result)
+        {
+            if (!IsEmptyList(opd))
+            {
+                result.Append(Interp(car(opd), env) + " ");
+                RecInterpList(cdr(opd), env, result);
+            }
+        }
+
+        private static string InterpCons(string opd, Dictionary<string, string> env)
+        {
+            string val1 = Interp(car(opd), env);
+            string val2 = Interp(second(opd), env);
+
+            if (IsEmptyList(val2))
+                return string.Format("({0})", val1);
+            else if (IsAtom(val2))
+                return string.Format("({0} . {1})", val1, val2);
+            else if (IsList(val2))
+                return string.Format("({0} {1}", val1, val2.TrimStart('('));
+            else
+                return string.Format("fail to interp cons {0}", opd);
         }
 
         static string second(string exp)
@@ -375,6 +431,11 @@ namespace Evaler
                 return string.Format("unknown type {0}\r\n", exp);
         }
 
+        static bool IsEmptyList(string exp)
+        {
+            return exp == "()";
+        }
+
         static bool IsList(string exp)
         {
             return exp.StartsWith("(") && exp.EndsWith(")");
@@ -394,7 +455,7 @@ namespace Evaler
         {
             if (exp == "()" || string.IsNullOrEmpty(exp))
                 return "null";
-            else if (exp.Length >= 1 && exp[1] == '(')
+            else if (exp.Length > 1 && exp[1] == '(')
                 return FirstList(exp);
             else
                 return FirstItem(exp);
@@ -440,9 +501,15 @@ namespace Evaler
 
         static string cdr(string exp)
         {
-            return car(exp) == "null" ?
-                "()" :
-                "(" + exp.Substring(car(exp).Length + 1).TrimStart();
+            if (car(exp) == "null")
+                return "()";
+            else
+            {
+                string sub = exp.Substring(car(exp).Length + 1).TrimStart();
+                return sub.StartsWith(".") ?
+                       sub.TrimStart('.').TrimStart().TrimEnd(')') :
+                       "(" + exp.Substring(car(exp).Length + 1).TrimStart();
+            }
         }
     }
 }
