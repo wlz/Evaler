@@ -1,0 +1,2 @@
+﻿1. return function .
+2. function as argument .
