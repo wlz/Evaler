@@ -54,28 +54,12 @@ namespace Evaler
             }
         }
 
-        private static string EscapeQuote(string exp)
-        {
-            StringBuilder result = new StringBuilder();
-
-            for (int i = 0; i < exp.Length; i++)
-            {
-                //(car '(a b))
-                if (true)
-                {
-                    //to be completed .
-                }
-            }
-
-            return result.ToString();
-        }
-
         private static string EscapeStartQuote(string exp)
         {
-            string sub = exp.Substring(1);
-            return sub.StartsWith("'") ?
-                "(quote " + EscapeStartQuote(sub) + ")" :
-                "(quote " + sub + ")";
+            return !exp.StartsWith("'") ? exp :
+                   exp.Substring(1).StartsWith("'") ?
+                   "(quote " + EscapeStartQuote(exp.Substring(1)) + ")" :
+                   "(quote " + exp.Substring(1) + ")";
         }
 
         private static void ExecCmd(string cmd, string args)
@@ -177,7 +161,7 @@ namespace Evaler
                 case "define":
                     return InterpDef(exp, env);
                 case "quote":
-                    return Interp(EscapeQuote(exp), env);
+                    return InterpQuote(EscapeStartQuote(exp), env);
                 default:
                     return string.Format("fail to interp {0}\r\n", exp);
             }
@@ -266,23 +250,14 @@ namespace Evaler
                 case "car":
                 case "cdr":
                     return ListOp(op, opd, env);
-                case "quote":
-                    return InterpQuote(opd, env);
                 default:
                     return "error";
             }
         }
 
-        private static string InterpQuote(string opd, Dictionary<string, string> env)
+        private static string InterpQuote(string exp, Dictionary<string, string> env)
         {
-            string raw = car(opd);
-            if (!raw.StartsWith("(quote"))
-                return raw;
-            else
-            {
-                string sub = raw.Substring(7, raw.Length - 8);
-                return "'" + Interp("(quote " + sub + ")", env);
-            }
+            return car(cdr(exp));
         }
 
         private static string ListOp(string op, string opd, Dictionary<string, string> env)
@@ -452,7 +427,7 @@ namespace Evaler
                 return "bool";
             else if (int.TryParse(exp, out num))
                 return "num";
-            else if (exp.StartsWith("'"))
+            else if (exp.StartsWith("'") || (!IsAtom(exp) && car(exp) == "quote"))
                 return "quote";
             else if (IsAtom(exp))
                 return "var";
