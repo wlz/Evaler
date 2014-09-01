@@ -54,7 +54,7 @@ namespace Evaler
             }
         }
 
-        private static string EscapeStartQuote(string exp)
+        static string EscapeStartQuote(string exp)
         {
             return !exp.StartsWith("'") ? exp :
                    exp.Substring(1).StartsWith("'") ?
@@ -62,7 +62,7 @@ namespace Evaler
                    "(quote " + exp.Substring(1) + ")";
         }
 
-        private static void ExecCmd(string cmd, string args)
+        static void ExecCmd(string cmd, string args)
         {
             switch (cmd)
             {
@@ -84,7 +84,7 @@ namespace Evaler
             }
         }
 
-        private static void SaveEnv()
+        static void SaveEnv()
         {
             StringBuilder data = new StringBuilder();
             foreach (var item in env)
@@ -93,25 +93,25 @@ namespace Evaler
             File.WriteAllText("env.dat", data.ToString());
         }
 
-        private static void LoadEnv()
+        static void LoadEnv()
         {
             LoadScript("env.dat");
         }
 
-        private static void LoadScript(string path)
+        static void LoadScript(string path)
         {
             string[] dat = File.ReadAllLines(path);
             foreach (var s in dat)
                 Interp(s, env);
         }
 
-        private static void PrintEnv()
+        static void PrintEnv()
         {
             foreach (var item in env)
                 Console.WriteLine("  {0}:{1}", item.Key, item.Value);
         }
 
-        private static string SerialEnv(Dictionary<string, string> env)
+        static string SerialEnv(Dictionary<string, string> env)
         {
             StringBuilder cont = new StringBuilder();
 
@@ -123,14 +123,14 @@ namespace Evaler
             return cont.ToString();
         }
 
-        private static Dictionary<string, string> DeserialEnv(string cont)
+        static Dictionary<string, string> DeserialEnv(string cont)
         {
             Dictionary<string, string> env = new Dictionary<string, string>();
             RcursiveDeserial(cont, env);
             return env;
         }
 
-        private static void RcursiveDeserial(string cont, Dictionary<string, string> env)
+        static void RcursiveDeserial(string cont, Dictionary<string, string> env)
         {
             string pair = car(cont);
             if (pair != "null")
@@ -167,12 +167,12 @@ namespace Evaler
             }
         }
 
-        private static string InterpLambda(string exp, Dictionary<string, string> env)
+        static string InterpLambda(string exp, Dictionary<string, string> env)
         {
             return "(" + exp + " " + SerialEnv(env) + ")";
         }
 
-        private static string InterpDef(string exp, Dictionary<string, string> env)
+        static string InterpDef(string exp, Dictionary<string, string> env)
         {
             if (Type(second(exp)) == "var")
             {
@@ -194,7 +194,7 @@ namespace Evaler
             return string.Empty;
         }
 
-        private static string Apply(string exp, Dictionary<string, string> env)
+        static string Apply(string exp, Dictionary<string, string> env)
         {
             string e1 = Interp(car(exp), env);
             string e2 = Interp(car(cdr(exp)), env);
@@ -204,12 +204,12 @@ namespace Evaler
             return Interp(third(car(e1)), contex);
         }
 
-        private static void ExtEnv(string key, string val)
+        static void ExtEnv(string key, string val)
         {
             ExtEnv(env, key, val);
         }
 
-        private static void ExtEnv(Dictionary<string, string> env, string key, string val)
+        static void ExtEnv(Dictionary<string, string> env, string key, string val)
         {
             if (!env.ContainsKey(key)) env.Add(key, val);
             else env[key] = val;
@@ -255,12 +255,12 @@ namespace Evaler
             }
         }
 
-        private static string InterpQuote(string exp, Dictionary<string, string> env)
+        static string InterpQuote(string exp, Dictionary<string, string> env)
         {
             return car(cdr(exp));
         }
 
-        private static string ListOp(string op, string opd, Dictionary<string, string> env)
+        static string ListOp(string op, string opd, Dictionary<string, string> env)
         {
             switch (op)
             {
@@ -279,14 +279,14 @@ namespace Evaler
             return string.Empty;
         }
 
-        private static string InterpList(string opd, Dictionary<string, string> env)
+        static string InterpList(string opd, Dictionary<string, string> env)
         {
             StringBuilder result = new StringBuilder("(");
             RecInterpList(opd, env, result);
             return result.ToString().TrimEnd() + ")";
         }
 
-        private static void RecInterpList(string opd, Dictionary<string, string> env, StringBuilder result)
+        static void RecInterpList(string opd, Dictionary<string, string> env, StringBuilder result)
         {
             if (!IsEmptyList(opd))
             {
@@ -295,7 +295,7 @@ namespace Evaler
             }
         }
 
-        private static string InterpCons(string opd, Dictionary<string, string> env)
+        static string InterpCons(string opd, Dictionary<string, string> env)
         {
             string val1 = Interp(car(opd), env);
             string val2 = Interp(second(opd), env);
@@ -320,12 +320,12 @@ namespace Evaler
             return car(cdr(cdr(exp)));
         }
 
-        private static string EvalCond(string exp, Dictionary<string, string> env)
+        static string EvalCond(string exp, Dictionary<string, string> env)
         {
             return EvalCondsRecursive(cdr(exp), env);
         }
 
-        private static string EvalCondsRecursive(string conds, Dictionary<string, string> env)
+        static string EvalCondsRecursive(string conds, Dictionary<string, string> env)
         {
             if (conds == "()" || string.IsNullOrEmpty(conds))
                 return string.Empty;
@@ -342,7 +342,7 @@ namespace Evaler
             }
         }
 
-        private static string EvalIf(string exp, Dictionary<string, string> env)
+        static string EvalIf(string exp, Dictionary<string, string> env)
         {
             string cond = car(cdr(exp));
 
@@ -475,7 +475,7 @@ namespace Evaler
                 return FirstItem(exp);
         }
 
-        private static string FirstItem(string exp)
+        static string FirstItem(string exp)
         {
             string result = string.Empty;
 
@@ -491,7 +491,7 @@ namespace Evaler
             return result;
         }
 
-        private static string FirstList(string exp)
+        static string FirstList(string exp)
         {
             string result = string.Empty;
             int cnt = 1;
